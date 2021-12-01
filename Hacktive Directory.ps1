@@ -7,39 +7,48 @@
 #                                                                               #
 #################################################################################
 
-
+Start-Transcript -Path C:\HackADTranscript.txt
 
 ##############################################################
 #               This Section Configures ADDS                 #
 #                                                            #
 ##############################################################
 
-#Set Static IP and DNS
-New-NetIPAddress –IPAddress 192.168.20.2 -DefaultGateway 192.168.1.1 -PrefixLength 24 -InterfaceIndex (Get-NetAdapter).InterfaceIndex
-Set-DNSClientServerAddress –InterfaceIndex (Get-NetAdapter).InterfaceIndex –ServerAddresses 192.168.1.10
+
+
+
+#Configures Static IP and DNS if needed
+function Conf-IP{
+New-NetIPAddress -IPAddress 192.168.20.2 -DefaultGateway 192.168.20.1 -PrefixLength 24 -InterfaceIndex (Get-NetAdapter).InterfaceIndex
+Set-DNSClientServerAddress -InterfaceIndex (Get-NetAdapter).InterfaceIndex -ServerAddresses 192.168.20.2
+}
+
 
 
 #Install ADDS and configure domain
-Add-WindowsFeature AD-Domain-Services -IncludeManagementTools
-Install-ADDSForest -DomainName ad.vulndomain.corp -DomainNetBIOSName AD -InstallDNS
+function Conf-Domain{
+    Add-WindowsFeature AD-Domain-Services -IncludeManagementTools
+    Install-ADDSForest -DomainName ad.vulndomain.corp -DomainNetBIOSName AD -InstallDNS
+
+    #Create AD Users and Computers 
+
+    Import-Csv .\aduserlist.csv | %{
+        New-ADUser -GivenName $_.GivenName -Name $_.Name -Surname $_.Surname -UserPrincipalName $_.UserPrincipleName -SamAccountName $_.SamAccountName -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
+    }
+
+    New-ADUser -GivenName admin -Name admin -Surname admin -UserPrincipalName dcadmin@ad.vulndomain.corp -SamAccountName dcadmin -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
+    New-ADUser -GivenName admin -Name admin -Surname admin -UserPrincipalName sqladmin@ad.vulndomain.corp -SamAccountName sqladmin -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
+    Get-Aduser -Filter * | Enable-ADAccount -ErrorAction Continue
+
+    1..100 | %{
+        New-ADComputer -Name COMP$_ -SamAccountName COMP$_  -Enabled $True
+    }
 
 
-#Create AD Users and Computers 
-
-Import-Csv .\wordlist.csv | %{
-    New-ADUser -GivenName 'someuser' -Name 'some' -Surname 'user' -UserPrincipalName ($_ +"@ad.vulndomain.corp") -SamAccountName $_ -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
+    Write-Host "Letting AD catch up for 10 seconds"
+    Start-Sleep -Seconds 10
+    Write-Host "Ok, time to misconfigure some AD settings"
 }
-
-Get-Aduser -Filter * | Enable-ADAccount -ErrorAction Continue
-
-1..100 | %{
-    New-ADComputer -Name "COMP" + $_ -SamAccountName "COMP" + $_  -Enabled $True
-}
-
-
-Write-Host "Letting AD catch up for 15 seconds"
-Start-Sleep -Seconds 15
-Write-Host "Ok, time to misconfigure some AD settings"
 
 
 
@@ -68,9 +77,9 @@ function Kerberoast-Prepare{
 #Give Standard user Full control of GPO
 function Delegate-GPO{
     new-gpo -name TestGPO -ErrorAction SilentlyContinue
-    New-GPLink -Name "TestGPO" -Target "dc=alsid,dc=corp" -ErrorAction SilentlyContinue 
-    $user = Get-ADUser -Filter * | Get-Random -Count 7 | select samaccountname
-    Set-GPPermission -Name TestGPO -TargetName $user.samaccountname -TargetType User -PermissionLevel GpoEditDeleteModifySecurity
+    New-GPLink -Name "TestGPO" -Target dc=ad,dc=vulnhub,dc=corp -ErrorAction SilentlyContinue 
+    $user = Get-ADUser -Filter * | Get-Random -Count 3 | select samaccountname
+    Set-GPPermission -Name TestGPO -TargetName $user.samaccountname -TargetType User -PermissionLevel GpoEditDeleteModifySecurity 
     }
 
 
@@ -110,11 +119,38 @@ function Password-InDescription{
 
 
 
-Delegate-Unconstrained
-Kerberoast-Prepare
-Delegate-GPO
-Break-SysvolPermissions
-ASREPRoast-Prepare
-Elevate-User
-Password-InDescription
+########################################################
+#                                                      #
+#               Main                                   #
+#                                                      #
+########################################################
+
+
+
+#Sets static IP based on user's response
+$answer= Read-Host "DC's require a static IP address. Would you like the script to change your static IP to '192.168.20.2' for you? Y/n"
+if($answer -eq 'Y' -or 'y'){ 
+    Conf-IP
+    Conf-Domain
+    Delegate-Unconstrained
+    Kerberoast-Prepare
+    Delegate-GPO
+    Break-SysvolPermissions
+    ASREPRoast-Prepare
+    Elevate-User
+    Password-InDescription
+    }
+else
+    {
+    Conf-Domain
+    Delegate-Unconstrained
+    Kerberoast-Prepare
+    Delegate-GPO
+    Break-SysvolPermissions
+    ASREPRoast-Prepare
+    Elevate-User
+    Password-InDescription
+    }
+
+Stop-Transcript
 
