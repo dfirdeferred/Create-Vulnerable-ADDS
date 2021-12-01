@@ -39,6 +39,7 @@ function Conf-Domain{
     New-ADUser -GivenName admin -Name admin -Surname admin -UserPrincipalName dcadmin@ad.vulndomain.corp -SamAccountName dcadmin -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
     New-ADUser -GivenName admin -Name admin -Surname admin -UserPrincipalName sqladmin@ad.vulndomain.corp -SamAccountName sqladmin -AccountPassword (ConvertTo-SecureString "verySecure1" -AsPlainText -force) -ErrorAction Continue
     Get-Aduser -Filter * | Enable-ADAccount -ErrorAction Continue
+    Add-ADGroupMember -Identity 'Domain Admins' -Members sqladmin,dcadmin
 
     1..100 | %{
         New-ADComputer -Name COMP$_ -SamAccountName COMP$_  -Enabled $True
