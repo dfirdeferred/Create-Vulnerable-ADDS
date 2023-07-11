@@ -52,11 +52,11 @@ You will need 2 windows servers instance running!
 ### Summary
 After running the scripts above you should have 2 Active Directory which the following setup:
 1. Server: ad.vulndomain.com  
-    IP Address: 192.168.20.2
+    IP Address: 192.168.20.2  
     Trust: Bidirectional
 
 1. Server: da.vulndomain.com  
-    IP Address: 192.168.20.3
+    IP Address: 192.168.20.3  
     Trust: Bidirectional
 
 ## Domain Default Creds
