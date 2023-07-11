@@ -46,7 +46,7 @@ You will need 2 windows servers instance running!
 1. Run HacktiveTrust.ps1 on the first server, replacing values as needed.  
 `./HacktiveTrust.ps1 -RemoteADDomainName da.vulndomain.com -RemoteADIP 192.168.20.3`
 
-> Note: If you are using a VM template/clone please make sure you use the following command to generalize the server for info about sysprep visit microsoft [site].  
+> Note: If you are using a VM template/clone please make sure you use the following command to generalize the server. For info about sysprep visit microsoft [site].  
 `%WINDIR%\system32\sysprep\sysprep.exe /generalize /shutdown /oobe`  
 
 ### Summary
