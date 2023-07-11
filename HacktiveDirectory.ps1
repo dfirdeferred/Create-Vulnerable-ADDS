@@ -44,7 +44,8 @@ function Conf-ActiveDirectory{
 
     Write-Host 'Installing AD Domain Services and tools' -Fore Cyan
     Add-WindowsFeature AD-Domain-Services -IncludeManagementTools
-    Install-ADDSForest -DomainName $DomainName -DomainNetBIOSName AD -InstallDNS
+    $DomainNetBiosName = $DomainName.Split('.')[0].ToUpper()
+    Install-ADDSForest -DomainName $DomainName -DomainNetBIOSName $DomainNetBiosName -InstallDNS
 }
 
 # Install ADDS and configure domain
