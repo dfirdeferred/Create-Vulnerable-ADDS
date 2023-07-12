@@ -70,6 +70,7 @@ Requirements: 2 computers (physical or virtual) running Server 2016 or newer.
     `./HacktiveTrust.ps1 -RemoteADDomainName da.vulndomain.com -RemoteADIP 192.168.20.3`
 > Note: If you are using a VM template/clone please make sure you use the following command to generalize the server. For more information about sysprep, visit [Microsoft](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/sysprep--generalize--a-windows-installation?view=windows-11).  
 `%WINDIR%\system32\sysprep\sysprep.exe /generalize /shutdown /oobe`  
+For more information about sysprep visit microsoft [site].
 
 ### Summary
 After running the scripts above you should have 2 AD DS forests with the following setups:
