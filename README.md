@@ -1,72 +1,91 @@
-# VulnerableADDS-Services
-Installs ADDS and configures a vulnerable domain on a windows server
+# Create-Vulnerable-ADDS
+This set of scripts can be used to install a vulnerable Active Directory Domain Services (AD DS) forest on one more computers and optionally create trusts between those forests.
 
-This script is intended to run on a Windows Server in order to install Active Directory services and the vulnerable domain.
+- **HacktiveDirectory.ps1:** This script is used to install a single-domain AD DS forest on a single server, populate the forest with objects, and create random vulnerabilities across the forest.
+- **HacktiveDNS.ps1:** This script configures DNS in preparation for creating a trust between two forests.
+- **HacktiveTrust.ps1:** This script configures a bidirectional trust between two forests.
 
-## Single Domain Setup
+## Single Forest Setup
+Requirements: 1 computer (physical or virtual) running Server 2016 or newer.
 
-### Setup Active Directory
-1. Open powershell as an admin
-2. CD to the folder with the files
-3. Run the HacktiveDirectory.ps1 file.  
+### Deploy Active Directory
+1. Clone or download this repository.
+2. Open PowerShell as a Local Admin.
+2. CD to the folder containing this repo's files.
+3. Temporarily bypass the execution policy:  
+    `Set-ExecutionPolicy Bypass -Scope Process -Force`
+3. Run the HacktiveDirectory.ps1 script:   
+    `./HacktiveDirectory.ps1 -DefaultGateway [YOUR GATEWAY] -IPAddress [DESIRED IP ADDRESS]`  
+    Example:  
     `./HacktiveDirectory.ps1 -DefaultGateway 192.168.20.1 -IPAddress 192.168.20.2`  
-    Note: Replace the IP address with the actual IP you will like to use
-4. You will see the following prompt, 'Config AD Environment'. Enter Y follow by the ENTER key.
-5. You will also be prompted to create a break key password.
-6. Once the setup is finish, reboot your machine.
+4. You will see the following prompt:  
+    `Config AD Environment? y/n`  
+    Enter Y followed by the ENTER key.
+5. You will also be prompted to create a password for the Directory Services Restore Mode (DSRM) account, also known as the "break-glass" account.
+6. When the script finishes, restart your computer.
 
 ### Populate Active Directory
-1. Open powershell as an admin
-2. CD to the folder with the files
+1. Open PowerShell as a Local Admin.
+2. CD to the folder containing this repo's files.
+3. Temporarily bypass the execution policy:  
+    `Set-ExecutionPolicy Bypass -Scope Process -Force`
 3. Run the HacktiveDirectory.ps1 file.  
     `./HacktiveDirectory.ps1`
-4. You will see the following prompt, 'Config AD Environment?'. Enter N follow by the ENTER key.
-5. Next you will see the following prompt, 'Populate AD Environment?'. Enter Y follow by the ENTER key.
-6. Next you will see a prompt asking if you will like to configure AD Vulnerabilities. If you would like to install vulnerabilities on your AD, then Enter Y otherwise Enter N.
+4. You will see the following prompt  
+    `Config AD Environment? y/n`  
+    Enter N followed by the ENTER key.
+5. Next you will see the following prompt,  
+    `Populate AD Environment? y/n`  
+    Enter Y followed by the ENTER key.
+6. After AD is populated, you will be prompted to create vulnerabilities in the environment:  
+`Config AD Vulnerability? y/n`   
+    If you would like to install vulnerabilities in your AD, then Enter Y otherwise Enter N
+7. Press the ENTER key.
 
 ### Summary
-After running the scripts above you should have 2 Active Directory which the following setup:
-1. Server: ad.vulndomain.com  
-    IP Address: 192.168.20.2
+After running the scripts above you should have an AD DS forest with the following setup:
+- Forest Name: ad.vulndomain.com  
+- Domain Controller IP Address: 192.168.20.2
+- Users:
+    - Domain Admin u/p: DCadmin/verySecure1
+    - SQL Admin u/p: sqladmin/verySecure1
 
-## Trust Setup
-You will need 2 windows servers instance running!
+## Two Forests and Trust Setup
+Requirements: 2 computers (physical or virtual) running Server 2016 or newer.
 
-### Setup Active Directory
-1. On the first server follow the setup above for single domain setup.
-2. On the second server follow the setup above but add the following parameter DomainName in step 3.  
-`./HacktiveDirectory.ps1 -DefaultGateway 192.168.20.1 -IPAddress 192.168.20.3 -DomainName da.vulndomain.com`
-> Note: Installing the vulnerabilites is not needed for this.  
+### Deploy AD DS on Two Servers
+1. On the first server, follow the steps above for "Single Forest Setup".
+2. On the second server, follow the steps above for "Single Forest Setup", but specify a DomainName when first running HacktiveDirectory.ps1.  
+    Example:  
+    `./HacktiveDirectory.ps1 -DefaultGateway 192.168.20.1 -IPAddress 192.168.20.3 -DomainName da.vulndomain.com`  
+   *Note: populating the second forest and adding a bunch of vulnerabilities is not required, but why not have some fun?*
 
-### Setup DNS on second server
-1. Run the HacktiveDNS.ps1 script on the second server, replacing values as needed.  
-`./HacktiveDirectory.ps1 -RemoteADDomainName ad.vulndomain.com -RemoteADIP 192.168.20.2`
+### Setup DNS on the Second Server
+1. Temporarily bypass the execution policy:  
+    `Set-ExecutionPolicy Bypass -Scope Process -Force`
+2. Run the HacktiveDNS.ps1 script on the second server.  
+    Example:  
+    `./HacktiveDNS.ps1 -RemoteADDomainName ad.vulndomain.com -RemoteADIP 192.168.20.2`
 
-### Setup Trust on first server
+### Setup the Trust on First Server
+1. Temporarily bypass the execution policy:  
+    `Set-ExecutionPolicy Bypass -Scope Process -Force`
 1. Run HacktiveTrust.ps1 on the first server, replacing values as needed.  
-`./HacktiveTrust.ps1 -RemoteADDomainName da.vulndomain.com -RemoteADIP 192.168.20.3`
-
-> Note: If you are using a VM template/clone please make sure you use the following command to generalize the server.  
+    Example:
+    `./HacktiveTrust.ps1 -RemoteADDomainName da.vulndomain.com -RemoteADIP 192.168.20.3`
+> Note: If you are using a VM template/clone, make sure you use the following command to generalize the server. For more information about Sysprep, visit [Microsoft](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/sysprep--generalize--a-windows-installation?view=windows-11).  
 `%WINDIR%\system32\sysprep\sysprep.exe /generalize /shutdown /oobe`  
-For more information about sysprep visit microsoft [site].
 
 ### Summary
-After running the scripts above you should have 2 Active Directory which the following setup:
-1. Server: ad.vulndomain.com  
-    IP Address: 192.168.20.2  
-    Trust: Bidirectional
+After running the scripts above you should have 2 AD DS forests with the following setups:
+- Forest 1 Name: ad.vulndomain.com  
+- Domain Controller 1 IP Address: 192.168.20.2
+- Users:
+    - Domain Admin u/p: DCadmin/verySecure1
+    - SQL Admin u/p: sqladmin/verySecure1
 
-1. Server: da.vulndomain.com  
-    IP Address: 192.168.20.3  
-    Trust: Bidirectional
-
-## Domain Default Creds
-Username: DCadmin  
-Password: verySecure1
-
-Username: sqladmin  
-Password: verySecure1
-
-
-
-[site]: https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/sysprep--generalize--a-windows-installation?view=windows-11
+- Forest 2 Name: da.vulndomain.com  
+- Domain Controller 2 IP Address: 192.168.20.2
+- Users:
+    - Domain Admin u/p: DCadmin/verySecure1
+    - SQL Admin u/p: sqladmin/verySecure1
